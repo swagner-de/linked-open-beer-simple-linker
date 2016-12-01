@@ -1,7 +1,7 @@
 import threading
 from tld import get_tld
 from DatabaseAgent import DatabaseAgent
-
+from urllib import error
 
 
 class ThreadedWorker(threading.Thread):
@@ -22,8 +22,10 @@ class ThreadedWorker(threading.Thread):
         try:
             domain = get_tld(self.item['website']).split('.')[0]
             semantic_result = self.sa.query(sparql_query % (domain))[0]['company']['value']
-        except:
-            semantic_result = 'no'
+        except IndexError:
+            semantic_result = 'no result on dbpedia'
+        except error.HTTPError:
+            semantic_result = 'NULL'
         semantic_result = semantic_result.replace("'", "\\'")
         da.execute(sqlinsert % (semantic_result, self.item['id']))
         da.close()

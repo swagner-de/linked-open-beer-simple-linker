@@ -29,7 +29,7 @@ def main():
     da = DatabaseAgent(**dbconfig)
     sa = SemanticAgent(**semantic_config)
 
-    sqlquery = 'SELECT id, website FROM brewery where dbpedia_uri IS NULL'
+    sqlquery = 'SELECT id, website FROM brewery where dbpedia_uri IS NULL AND website IS NOT NULL'
 
     result = da.query(sqlquery)
     da.close()
@@ -38,8 +38,9 @@ def main():
 
     # Create new threads
     for item in result:
-        while threading.active_count() > 100:
+        while threading.active_count() > 30:
             time.sleep(5)
+        time.sleep(1)
         t = ThreadedWorker(sa, item, **dbconfig)
         t.start()
         threads.append(t)

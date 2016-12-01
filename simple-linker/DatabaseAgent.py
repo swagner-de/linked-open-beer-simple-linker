@@ -20,6 +20,26 @@ class DatabaseAgent:
                 "Error while establishing connection to the database server [%d]: %s" % (e.args[0], e.args[1]))
             sys.exit(1)
 
+    def __buildInsertSql(self, table, objs):
+      if len(objs) == 0:
+        return None
+      s = set()
+      [s.update(row.keys()) for row in objs]
+      columns = [col for col in s]
+      tuples = []
+      for item in objs:
+        if item:
+          values = []
+          for key in columns:
+            try:
+              values.append('"%s"' % str(item[key]).replace("'", "\'") if not item[key] == '' else 'NULL')
+            except KeyError:
+              values.append('NULL')
+          if not all('NULL' == value for value in values):
+            tuples.append('(%s)' % ', '.join(values))
+      return 'INSERT INTO `' + table + '` (' + ', '.join(['`%s`' % column for column in columns]) + ') VALUES\n' \
+             + ',\n'.join(tuples)
+
 
     def execute(self, statement):
         if statement:
@@ -30,8 +50,7 @@ class DatabaseAgent:
                 self.logger.warn("Warning while executing statement: %s" % e)
             except MySQLdb.Error as e:
                 self.logger.error("Error while executing statement [%d]: %s" % (e.args[0], e.args[1]))
-                self.close()
-                sys.exit(1)
+
 
     def query(self, query):
         if query:
@@ -48,6 +67,10 @@ class DatabaseAgent:
                 self.close()
                 sys.exit(1)
 
+    def persistDict(self, table, dict):
+      sql = self.__buildInsertSql(table, dict)
+      self.execute(sql)
+      self.db.commit()
 
     def close(self):
         self.cnx.close()
